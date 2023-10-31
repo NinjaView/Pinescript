@@ -1,0 +1,239 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © MokuNui
+
+//@version=5
+indicator('Green Flag FTS', overlay=true)//, timeframe='')
+//{
+// # Author: Jose Azcarate
+//}
+
+// inputs //
+//{
+trailType = input.string('modified', 'Trailtype', options=['modified', 'unmodified'])
+ATRPeriod = input(200, 'ATR Period')
+ATRFactor = input(8, 'ATR Factor')
+show_fib_entries = input(true, 'Show Fib Entries?')
+
+norm_o = request.security(ticker.new(syminfo.prefix, syminfo.ticker), timeframe.period, open)
+norm_h = request.security(ticker.new(syminfo.prefix, syminfo.ticker), timeframe.period, high)
+norm_l = request.security(ticker.new(syminfo.prefix, syminfo.ticker), timeframe.period, low)
+norm_c = request.security(ticker.new(syminfo.prefix, syminfo.ticker), timeframe.period, close)
+//}
+
+//////// FUNCTIONS //////////////
+//{
+// Wilders ma //
+Wild_ma(_src, _malength) =>
+    _wild = 0.0
+    _wild := nz(_wild[1]) + (_src - nz(_wild[1])) / _malength
+    _wild
+
+/////////// TRUE RANGE CALCULATIONS /////////////////
+HiLo = math.min(norm_h - norm_l, 1.5 * nz(ta.sma(norm_h - norm_l, ATRPeriod)))
+
+HRef = norm_l <= norm_h[1] ? norm_h - norm_c[1] : norm_h - norm_c[1] - 0.5 * (norm_l - norm_h[1])
+
+LRef = norm_h >= norm_l[1] ? norm_c[1] - norm_l : norm_c[1] - norm_l - 0.5 * (norm_l[1] - norm_h)
+
+trueRange = trailType == 'modified' ? math.max(HiLo, HRef, LRef) : math.max(norm_h - norm_l, math.abs(norm_h - norm_c[1]), math.abs(norm_l - norm_c[1]))
+//}
+
+
+/////////// TRADE LOGIC ////////////////////////
+//{
+loss = ATRFactor * Wild_ma(trueRange, ATRPeriod)
+
+Up = norm_c - loss
+Dn = norm_c + loss
+
+TrendUp = Up
+TrendDown = Dn
+Trend = 1
+
+TrendUp := norm_c[1] > TrendUp[1] ? math.max(Up, TrendUp[1]) : Up
+TrendDown := norm_c[1] < TrendDown[1] ? math.min(Dn, TrendDown[1]) : Dn
+
+Trend := norm_c > TrendDown[1] ? 1 : norm_c < TrendUp[1] ? -1 : nz(Trend[1], 1)
+trail = Trend == 1 ? TrendUp : TrendDown
+
+ex = 0.0
+ex := ta.crossover(Trend, 0) ? norm_h : ta.crossunder(Trend, 0) ? norm_l : Trend == 1 ? math.max(ex[1], norm_h) : Trend == -1 ? math.min(ex[1], norm_l) : ex[1]
+//}
+
+// //////// PLOT TP and SL /////////////
+//{
+plot(trail, 'Trailingstop', style=plot.style_line, color=Trend == 1 ? color.green : Trend == -1 ? color.red : na)
+plot(ex, 'Extremum', style=plot.style_circles, color=Trend == 1 ? color.lime : Trend == -1 ? color.fuchsia : na)
+//}
+
+////// FIBONACCI LEVELS ///////////
+//{
+state = Trend == 1 ? 'long' : 'short'
+
+fib1Level = 61.8
+fib2Level = 78.6
+fib3Level = 88.6
+
+f1 = ex + (trail - ex) * fib1Level / 100
+f2 = ex + (trail - ex) * fib2Level / 100
+f3 = ex + (trail - ex) * fib3Level / 100
+l100 = trail + 0
+
+Fib1 = plot(f1, 'Fib 1', style=plot.style_line, color=color.new(color.black, 0))
+Fib2 = plot(f2, 'Fib 2', style=plot.style_line, color=color.new(color.black, 0))
+Fib3 = plot(f3, 'Fib 3', style=plot.style_line, color=color.new(color.black, 0))
+L100 = plot(l100, 'l100', style=plot.style_line, color=color.new(color.black, 0))
+
+fill(Fib1, Fib2, color=state == 'long' ? color.green : state == 'short' ? color.red : na, transp=90)
+fill(Fib2, Fib3, color=state == 'long' ? color.new(color.green, 70) : state == 'short' ? color.new(color.red, 70) : na, transp=90)
+fill(Fib3, L100, color=state == 'long' ? color.new(color.green, 60) : state == 'short' ? color.new(color.red, 60) : na, transp=90)
+
+l1 = state[1] == 'long' and ta.crossunder(norm_c, f1[1])
+l2 = state[1] == 'long' and ta.crossunder(norm_c, f2[1])
+l3 = state[1] == 'long' and ta.crossunder(norm_c, f3[1])
+s1 = state[1] == 'short' and ta.crossover(norm_c, f1[1])
+s2 = state[1] == 'short' and ta.crossover(norm_c, f2[1])
+s3 = state[1] == 'short' and ta.crossover(norm_c, f3[1])
+
+atr = ta.sma(trueRange, 14)
+
+/////////// FIB PLOTS /////////////////.
+l4=(show_fib_entries and l1 ? low - atr : na)
+l5=(show_fib_entries and l2 ? low - 1.5 * atr : na)
+l6=(show_fib_entries and l3 ? low - 2 * atr : na)
+s4=(show_fib_entries and s1 ? high + atr : na)
+s5=(show_fib_entries and s2 ? high + 1.5 * atr : na)
+s6=(show_fib_entries and s3 ? high + 2 * atr : na)
+//plotshape(show_fib_entries and l1 ? low - atr : na, 'LS1', style=shape.triangleup, location=location.belowbar, color=color.new(color.yellow, 0), size=size.tiny)
+//plotshape(show_fib_entries and l2 ? low - 1.5 * atr : na, 'LS2', style=shape.triangleup, location=location.belowbar, color=color.new(color.yellow, 0), size=size.tiny)
+plotshape(show_fib_entries and l3 ? low - 2 * atr : na, 'LS3', style=shape.triangleup, location=location.belowbar, color=color.new(color.yellow, 0), size=size.tiny)
+//plotshape(show_fib_entries and s1 ? high + atr : na, 'SS1', style=shape.triangledown, location=location.abovebar, color=color.new(color.purple, 0), size=size.tiny)
+//plotshape(show_fib_entries and s2 ? high + 1.5 * atr : na, 'SS2', style=shape.triangledown, location=location.abovebar, color=color.new(color.purple, 0), size=size.tiny)
+plotshape(show_fib_entries and s3 ? high + 2 * atr : na, 'SS3', style=shape.triangledown, location=location.abovebar, color=color.new(color.purple, 0), size=size.tiny)
+//}
+
+
+//////////// FIB ALERTS /////////////////////
+//{
+
+
+alertcondition(fixnan(f1) != fixnan(f1[1]), title='Stop Line Change', message='Stop Line Change')
+//}
+
+n = input(5, "n")
+DemandIndexValue = input(0.35, "Demand Index Value")
+
+h = high
+l = low
+c = close
+v = volume
+x = bar_index
+//nan = na
+wC = (h + l + 2 * c) * 0.25
+wCR = (wC - wC[1]) / math.min(wC, wC[1])
+
+Average(data , len) => math.sum(data, len) / len
+TrueRangeTS(h, c, l) => math.max(c[1], h) - math.min(c[1], l)
+
+
+cR = 3 * wC / Average(ta.highest(h, 2) - ta.lowest(l, 2), n) * math.abs(wCR)
+vR = v / Average(v, n)
+
+vPerC = vR / math.exp(math.min(88, cR))
+atr2 = Average(TrueRangeTS(h,c,l),n)*1.5
+
+buyP = wCR > 0 ? vR : vPerC
+sellP = wCR > 0 ? vPerC : vR
+
+var buyPres = float(na)
+var sellPres = float(na)
+buyPres := na(buyPres[1]) ? 0 : ((buyPres[1] * (n - 1)) + buyP) / n
+sellPres := na(sellPres[1]) ? 0 : ((sellPres[1] * (n - 1)) + sellP) / n
+
+var DI = float(na)
+if ((((sellPres[1] * (n - 1)) + sellP) / n - ((buyPres[1] * (n - 1)) + buyP) / n) > 0) 
+    DI := - ((sellPres != 0) ? buyPres / sellPres : 1)
+else 
+    DI := (buyPres != 0) ? sellPres / buyPres : 1
+
+DMI = na(c) ? na :  DI < 0 ? -1 - DI : 1 - DI
+var DemandL =  float(na)
+var DemandH =  float(na)
+var DemandX =  int(na)
+DemandL := ta.crossunder(DMI, -DemandIndexValue) ? l :  DMI < -.2 and l < DemandL[1] ? l : DemandL[1]
+DemandH := l == DemandL ? h  : DemandH[1]
+DemandX := l == DemandL ? x  : DemandX[1]
+
+
+var DL = line.new(0, 0, 0, 0, color =  color.rgb(49, 124, 83, 50),  width = 2)
+var DH = line.new(0, 0, 0, 0, color =   color.rgb(49, 124, 83, 50),  width = 2)
+
+if barstate.islast
+    line.set_xy1(DL, DemandX, DemandL)
+    line.set_xy2(DL, DemandX+1, DemandL)
+    line.set_extend(DL, extend=extend.right)
+    
+    line.set_xy1(DH, DemandX, DemandH)
+    line.set_xy2(DH, DemandX+1, DemandH)
+    line.set_extend(DH, extend=extend.right)
+
+var dcloud = linefill.new(DL, DH,   color.rgb(49, 124, 83, 50))    
+
+var SupplyH = float(na)
+var SupplyL = float(na)
+var SupplyX = int(na)
+SupplyH := ta.crossover(DMI, DemandIndexValue) ? h : DMI > 0.5 and h > SupplyH ? h : SupplyH
+SupplyL := h == SupplyH ? l : SupplyL[1]
+SupplyX := h == SupplyH ? x : SupplyX[1]
+
+
+
+
+var SH = line.new(0, 0, 0, 0, color =   color.rgb(159, 55, 55, 51),  width = 2)
+var SL = line.new(0, 0, 0, 0, color =       color.rgb(159, 55, 55, 51),  width = 2)
+
+if barstate.islast
+    line.set_xy1(SH, SupplyX, SupplyH)
+    line.set_xy2(SH, SupplyX+1, SupplyH)
+    line.set_extend(SH, extend=extend.right)
+    
+    line.set_xy1(SL, SupplyX, SupplyL)
+    line.set_xy2(SL, SupplyX+1, SupplyL)
+    line.set_extend(SL, extend=extend.right)
+
+var scloud = linefill.new(SH, SL,    color.rgb(159, 55, 55, 51))    
+
+var res = float(na)
+var resindex = int(na)
+res := ta.crossover(c, SupplyH)? atr2 : res[1]
+resindex := ta.crossover(c, SupplyH) ? x : resindex[1]
+
+
+var RH = line.new(0, 0, 0, 0, color =  color.new(#0091ff, 70),  width = 1)
+var RL = line.new(0, 0, 0, 0, color =  color.new(#0091ff, 70),  width = 1)
+
+if barstate.islast and resindex > SupplyX
+    line.set_xy1(RH, SupplyX, SupplyH + 2*res)
+    line.set_xy2(RH, SupplyX+1, SupplyH + 2*res)
+    line.set_extend(RH, extend=extend.right)
+    
+    line.set_xy1(RL, SupplyX, SupplyH + res)
+    line.set_xy2(RL, SupplyX+1, SupplyH + res)
+    line.set_extend(RL, extend=extend.right)
+
+var rcloud = linefill.new(RH, RL, color.new(#0091ff, 70))    
+
+// Check if the closing price is under RH line
+underRHLine = close < line.get_price(RH, bar_index)
+
+// Plot the red triangle when the conditions are met and underRHLine
+plotshape((s6) and underRHLine, title='Short Signal', style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
+
+// Check if the closing price is above DL line
+aboveDLLine = close > line.get_price(DL, bar_index)
+
+// Plot the green triangle when the conditions are met and aboveDLLine
+plotshape((l6) and aboveDLLine, title='Long Signal', style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+
+alertcondition((l6) and aboveDLLine, title='Buy', message='Buy')
+alertcondition((s6) and underRHLine, title='Sell', message='Sell')

@@ -1,0 +1,47 @@
+//@version=5
+strategy("NinjaView Example 2 / ES 3m Short Only (Triple RED)", overlay=true)
+// Alert Message '{{strategy.order.alert_message}}'
+//3min
+T3 = input(100)//to 600
+
+xPrice3 = close
+xe1 = ta.ema(xPrice3, T3)
+xe2 = ta.ema(xe1, T3)
+xe3 = ta.ema(xe2, T3)
+xe4 = ta.ema(xe3, T3)
+xe5 = ta.ema(xe4, T3)
+xe6 = ta.ema(xe5, T3)
+
+b3 = 0.7
+c1 = -b3*b3*b3
+c2 = 3*b3*b3+3*b3*b3*b3
+c3 = -6*b3*b3-3*b3-3*b3*b3*b3
+c4 = 1+3*b3+b3*b3*b3+3*b3*b3
+nT3Average = c1 * xe6 + c2 * xe5 + c3 * xe4 + c4 * xe3
+
+// Buy Signal - Price is below T3 Average
+buySignal3 = xPrice3 < nT3Average
+sellSignal3 = xPrice3 > nT3Average
+
+//NinjaTrader Settings.
+acct = "Sim101"
+ticker = "ES 12-23"
+qty = 1
+takeProfitTicks = 4
+stopLossTicks = 16
+tickSize = 0.25
+
+takeProfitShort = close - takeProfitTicks * tickSize
+stopLossShort = close + stopLossTicks * tickSize
+
+OCOMarketShort = '{ "alert": "OCO Market Short", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(qty) + '", "take_profit_price": "' + str.tostring(takeProfitShort) + '", "stop_price": "' + str.tostring(stopLossShort) + '", "tif": "DAY" }'
+CloseAll = '{ "alert": "Close All", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '" }'
+
+IsUp = close > open
+IsDown = close < open
+PatternPlot = IsDown[2] and IsDown[1] and IsDown and close[1] <= high[0] and close[1] > close[0] and low[1] > low[0] and high[2] > high[1] and low[2] <= low[1]
+if (PatternPlot and sellSignal3)
+    strategy.entry('Short', strategy.short, alert_message=OCOMarketShort)
+    strategy.exit('Close Short', 'Short', profit=takeProfitTicks, loss=stopLossTicks, alert_message=CloseAll)
+
+//plotshape(PatternPlot, title="Custom Pattern", style=shape.circle, location=location.abovebar, color=color.red, size=size.small)

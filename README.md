@@ -1,4 +1,7 @@
 # Pinescript Live Examples
+
+## Automate Your Tradingview Strategies to Prop Funded Accounts with NinjaView!
+
 NinjaView Pinescript Strategies
 ![image](https://github.com/NinjaView/Pinescript/assets/148915340/a4acd376-7df6-4133-8e6f-90aa0dad1c83)
 ![image](https://github.com/NinjaView/Pinescript/assets/148915340/bfa1d0ce-4424-4994-b80b-4b2fa9ba9031)

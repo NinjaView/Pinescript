@@ -6,7 +6,7 @@ strategy("NinjaView Example 3 / NQ 2m /ES 3m (Fractal Engulfer)",overlay = true)
 //
 T3 = input(400)// - 600
 // Input for Long Settings
-
+ 
 xPrice3 = close
 xe1 = ta.ema(xPrice3, T3)
 xe2 = ta.ema(xe1, T3)
@@ -14,44 +14,44 @@ xe3 = ta.ema(xe2, T3)
 xe4 = ta.ema(xe3, T3)
 xe5 = ta.ema(xe4, T3)
 xe6 = ta.ema(xe5, T3)
-
+ 
 b3 = 0.7
 c1 = -b3*b3*b3
 c2 = 3*b3*b3+3*b3*b3*b3
 c3 = -6*b3*b3-3*b3-3*b3*b3*b3
 c4 = 1+3*b3+b3*b3*b3+3*b3*b3
 nT3Average = c1 * xe6 + c2 * xe5 + c3 * xe4 + c4 * xe3
-
+ 
 //plot(nT3Average, color=color.white, title="T3")
-
+ 
 // Buy Signal - Price is below T3 Average
 buySignal = xPrice3 < nT3Average
 sellSignal = xPrice3 > nT3Average
-
+ 
 n = input.int(title="Periods", defval=2, minval=2)
-
+ 
 // Conditions
 mSell = (high[n-2] < high[n]) and (high[n-1] < high[n]) and (high[n+1] < high[n]) and (high[n+2] < high[n] and close < open)
 mBuy = (low[n-2] > low[n]) and (low[n-1] > low[n]) and (low[n+1] > low[n]) and (low[n+2] > low[n] and close > open)
 barSignal = (high > high[1] and low < low[1])
-
+ 
 // Initialize variables
 barSignalMet = false
-
+ 
 // Check for signals
 if barSignal
     barSignalMet := true
-
+ 
 if not barSignal and (mBuy) and barSignalMet[1]
     barSignalMet := false
-
+ 
 // Plot Signals
 Sell = barSignalMet and mSell
 Buy = barSignalMet and mBuy
 plotshape(barSignalMet and mSell, style=shape.circle, location=location.abovebar, color=color.rgb(255, 59, 59), size=size.tiny)
 plotshape(barSignalMet and mBuy, style=shape.circle, location=location.belowbar, color=color.rgb(105, 255, 59), size=size.tiny)
 plotshape(barSignal and (mSell or mBuy) and barSignalMet[1], style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
-
+ 
 // Strategy order conditions
 acct = "Sim101"
 ticker = "ES 12-23"
@@ -63,11 +63,11 @@ stopLossLong = close - 12.5 //Points
 OCOMarketLong = '{ "alert": "OCO Market Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(qty) + '", "take_profit_price": "' + str.tostring(takeProfitLong) + '", "stop_price": "' + str.tostring(stopLossLong) + '", "tif": "DAY" }'
 OCOMarketShort = '{ "alert": "OCO Market Short", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(qty) + '", "take_profit_price": "' + str.tostring(takeProfitShort) + '", "stop_price": "' + str.tostring(stopLossShort) + '", "tif": "DAY" }'
 CloseAll = '{ "alert": "Close All", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '" }'
-
+ 
 if(Buy and buySignal and strategy.position_size == 0)
-    strategy.entry('long',strategy.long)
-    strategy.exit('long',profit=10,loss=50)
-
+    strategy.entry('long',strategy.long,alert_message=OCOMarketLong)
+    strategy.exit('long',profit=10,loss=50,alert_message=CloseAll)
+ 
 if (Sell and sellSignal and strategy.position_size == 0)
-    strategy.entry('short',strategy.short)
-    strategy.exit('short',profit=20,loss=50)
+    strategy.entry('short',strategy.short),alert_message=OCOMarketShort
+    strategy.exit('short',profit=20,loss=50,alert_message=CloseAll)

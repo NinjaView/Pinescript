@@ -1,5 +1,9 @@
 //@version=5
 strategy(title='UT Bot Alerts (QuantNomad) Strategy w/ NinjaView', overlay=true)
+acct = input("Sim101")
+ticker = input("ES 03-24")
+qty = input(1)
+
 T3 = input(100)//600
 // Input for Long Settings
 // Input for Long Settings
@@ -84,9 +88,6 @@ if sell and sellSignal3
     stopLossLong := na
 
 // Strategy order conditions
-acct = "Sim101"
-ticker = "ES 12-23"
-qty = 1
 
 OCOMarketLong = '{ "alert": "OCO Market Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(qty) + '", "take_profit_price": "' + str.tostring(takeProfitLong) + '", "stop_price": "' + str.tostring(stopLossLong) + '", "tif": "DAY" }'
 OCOMarketShort = '{ "alert": "OCO Market Short", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(qty) + '", "take_profit_price": "' + str.tostring(takeProfitShort) + '", "stop_price": "' + str.tostring(stopLossShort) + '", "tif": "DAY" }'

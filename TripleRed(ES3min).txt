@@ -2,6 +2,10 @@
 strategy("NinjaView Example 2 / ES 3m Short Only (Triple RED)", overlay=true)
 // Alert Message '{{strategy.order.alert_message}}'
 //3min
+acct = input("Sim101")
+ticker = input("ES 03-24")
+qty = input(1)
+
 T3 = input(100)//to 600
 
 xPrice3 = close
@@ -24,9 +28,6 @@ buySignal3 = xPrice3 < nT3Average
 sellSignal3 = xPrice3 > nT3Average
 
 //NinjaTrader Settings.
-acct = "Sim101"
-ticker = "ES 12-23"
-qty = 1
 takeProfitTicks = 4
 stopLossTicks = 16
 tickSize = 0.25

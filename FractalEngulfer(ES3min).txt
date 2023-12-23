@@ -4,7 +4,14 @@ strategy("NinjaView Example 3 / NQ 2m /ES 3m (Fractal Engulfer)",overlay = true)
 //ES 3min (T3 400)
 // Alert message '{{strategy.order.alert_message}}'
 //
+
+acct = input("Sim101")
+ticker = input("ES 03-24")
+qty = input(1)
+
 T3 = input(400)// - 600
+
+
 // Input for Long Settings
  
 xPrice3 = close
@@ -53,9 +60,7 @@ plotshape(barSignalMet and mBuy, style=shape.circle, location=location.belowbar,
 plotshape(barSignal and (mSell or mBuy) and barSignalMet[1], style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
  
 // Strategy order conditions
-acct = "Sim101"
-ticker = "ES 12-23"
-qty = 1
+
 takeProfitShort = close + 2.5 //Points
 stopLossShort = close - 12.5 //Points
 takeProfitLong = close + 1 //Points

@@ -3,7 +3,7 @@ strategy("NinjaView Example 2 / ES 3m Short Only (Triple RED)", overlay=true)
 // Alert Message '{{strategy.order.alert_message}}'
 //3min
 acct = input("Sim101")
-ticker = input("ES 03-24")
+ticker = input("ES JUN24")
 qty = input(1)
 
 T3 = input(100)//to 600

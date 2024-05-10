@@ -5,9 +5,9 @@ strategy("NinjaView Example 3 / NQ 2m /ES 3m (Fractal Engulfer)",overlay = true)
 // Alert message '{{strategy.order.alert_message}}'
 //
 
-acct = input("Sim101")
-ticker = input("ES JUN24")
-qty = input(1)
+acct = input.string(defval="Sim101", title="Account Name")
+ticker = input.string(defval="ES JUN24", title="Symbol Ticker")
+qty = input.int(defval=1, title="Quantity")
 
 T3 = input(400)// - 600
 

@@ -1,8 +1,8 @@
 //@version=5
 strategy(title='UT Bot Alerts (QuantNomad) Strategy w/ NinjaView', overlay=true)
-acct = input("Sim101")
-ticker = input("ES JUN24")
-qty = input(1)
+acct = input.string(defval="Sim101", title="Account Name")
+ticker = input.string(defval="ES JUN24", title="Symbol Ticker")
+qty = input.int(defval=1, title="Quantity")
 
 T3 = input(100)//600
 // Input for Long Settings

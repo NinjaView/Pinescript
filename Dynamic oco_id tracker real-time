@@ -1,0 +1,93 @@
+//@version=5
+strategy("Dynamic oco_id Adjustment Strategy 3", overlay=true)
+// Alert message '{{strategy.order.alert_message}}'
+acct = input.string("Simz", title="Account")
+ticker = input.string("ES 03-24", title="Ticker")
+entryQty = input(10, title="Entry Quantity")
+adjustedQty2 = input(5, title="Adjusted Quantity")
+
+// Input for the fast and slow periods of the moving averages
+fastLength = input(5, title="Fast Length")
+slowLength = input(10, title="Slow Length")
+
+// Calculate moving averages
+fastMA = ta.sma(close, fastLength)
+slowMA = ta.sma(close, slowLength)
+
+// Entry condition for a long position (fast MA crossing above slow MA)
+longCondition = ta.crossover(fastMA, slowMA)
+
+atrValue = ta.atr(14)
+
+initialTP_ticks = 4 * atrValue
+initialSL_ticks = atrValue
+
+// Convert initialTP and initialSL to prices
+initialTP = close + math.ceil(initialTP_ticks / syminfo.mintick) * syminfo.mintick
+initialSL = close - math.floor(initialSL_ticks / syminfo.mintick) * syminfo.mintick
+
+// Dynamic adjustment condition (for demonstration purposes)
+dynamicAdjustmentCondition = close > ta.sma(close, 50)
+
+
+//Order ID Tracker
+var int orderCounter = 0
+var string orderID = ""
+
+//if (longCondition or longCondition2) // Define your order condition here
+    //orderCounter := orderCounter + 1
+    //orderID := str.tostring(year) + str.tostring(month) + str.tostring(dayofmonth) + str.tostring(hour) + str.tostring(minute) + "_" + str.tostring(orderCounter)
+    //label.new(bar_index, close, "Order ID: " + orderID, style=label.style_label_down)
+
+//EOF OIT
+
+
+if (longCondition)
+    orderCounter := orderCounter + 1
+    orderID := str.tostring(year) + str.tostring(month) + str.tostring(dayofmonth) + str.tostring(hour) + str.tostring(minute) + "_" + str.tostring(orderCounter)
+    ocoLONG = '{ "alert": "OCO Market Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(entryQty) + '", "take_profit_price": "' + str.tostring(initialTP) + '", "stop_price": "' + str.tostring(initialSL) + '", "tif": "DAY", "oco_id": "' + str.tostring(orderID) + '" }'
+    strategy.entry("Long", strategy.long,qty=entryQty, alert_message=ocoLONG)
+
+
+// Dynamic adjustment of TP and SL for long positions
+if (strategy.position_size > 0 and ta.change(close) > 1)
+    dynamicProfit = dynamicAdjustmentCondition ? close + 5 : initialTP
+    dynamicLoss = dynamicAdjustmentCondition ? close - 5 : initialSL
+    adjustedDynamicProfit_ticks = math.ceil((dynamicProfit - close) / syminfo.mintick) * syminfo.mintick
+    adjustedDynamicLoss_ticks = math.floor((close - dynamicLoss) / syminfo.mintick) * syminfo.mintick
+    dynamicAlert = '{ "alert": "Adjusted OCO Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(adjustedQty2) + '", "take_profit_price": "' + str.tostring(dynamicProfit) + '", "stop_price": "' + str.tostring(dynamicLoss) + '", "tif": "DAY", "oco_id": "' + str.tostring(orderID) + '" }'
+    strategy.exit("LongExit", from_entry="Long", profit=adjustedDynamicProfit_ticks, qty=adjustedQty2, loss=adjustedDynamicLoss_ticks, alert_message = dynamicAlert)
+
+// Dynamic adjustment of TP and SL for short positions
+if (strategy.position_size > 0 and ta.change(close) < 1)
+    dynamicProfit = dynamicAdjustmentCondition ? close + 10 : initialTP
+    dynamicLoss = dynamicAdjustmentCondition ? close - 10 : initialSL
+    adjustedDynamicProfit_ticks = math.ceil((dynamicProfit - close) / syminfo.mintick) * syminfo.mintick
+    adjustedDynamicLoss_ticks = math.floor((close - dynamicLoss) / syminfo.mintick) * syminfo.mintick
+    dynamicAlert = '{ "alert": "Adjusted OCO Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(adjustedQty2) + '", "take_profit_price": "' + str.tostring(dynamicProfit) + '", "stop_price": "' + str.tostring(dynamicLoss) + '", "tif": "DAY", "oco_id": "' + str.tostring(orderID) + '" }'
+    strategy.exit("LongExit2", from_entry="Long", profit=adjustedDynamicProfit_ticks, qty=adjustedQty2, loss=adjustedDynamicLoss_ticks, alert_message = dynamicAlert)
+
+
+rsiLength = input(14, title="RSI Length")
+overboughtLevel = input(74, title="Overbought Level")
+oversoldLevel = input(26, title="Oversold Level")
+
+// Calculate RSI
+rsi = ta.rsi(close, rsiLength)
+
+// Define long and short exit conditions
+longExit = ta.crossover(rsi, overboughtLevel)
+shortExit = ta.crossunder(rsi, oversoldLevel)
+
+// Define entry and exit conditions for long position
+if (longExit)
+    CloseAll = '{ "alert": "Close All", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '" }'
+    strategy.close("Long",alert_message=CloseAll)
+
+
+// Plotting moving averages for visualization
+plot(fastMA, color=color.blue, title="Fast MA")
+plot(slowMA, color=color.red, title="Slow MA")
+
+// Highlighting dynamic adjustment condition
+bgcolor(dynamicAdjustmentCondition ? color.new(color.green, 80) : na, offset=-1)

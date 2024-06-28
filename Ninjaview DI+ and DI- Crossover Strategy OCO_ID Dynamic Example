@@ -1,0 +1,64 @@
+//@version=5
+strategy("Ninjaview DI+ and DI- Crossover Strategy Made by Mokunui", overlay=true)
+
+// Input parameters
+diLength = input.int(14, "DI Length", minval=1)
+adxLength = input.int(14, "ADX Length", minval=1)
+adxThreshold = input.int(20, "ADX Threshold", minval=0)
+//Order ID Tracker
+var int orderCounter = 0
+var string orderID = ""
+
+// Calculate ADX, DI+, and DI-
+[diplus, diminus, adx] = ta.dmi(diLength, adxLength)
+
+// Define crossover and crossunder conditions
+crossoverUp = ta.crossover(diplus, diminus)
+crossoverDown = ta.crossunder(diplus, diminus)
+
+// Plot DI+ and DI-
+plot(diplus, color=color.green, title="DI+")
+plot(diminus, color=color.red, title="DI-")
+
+// Plot ADX
+plot(adx, color=color.blue, title="ADX")
+
+// Entry conditions
+longCondition = crossoverUp and adx > adxThreshold
+shortCondition = crossoverDown and adx > adxThreshold
+acct = input.string("Sim101", title="Account")
+ticker = input.string("ES 09-24", title="Ticker")
+entryQty = input(10, title="Entry Quantity")
+adjustedQty2 = input(5, title="Adjusted Quantity")
+atrValue = ta.atr(14)
+dynamicAdjustmentCondition = close > ta.sma(close, 50)
+
+initialTP_ticks = 4 * atrValue
+initialSL_ticks = atrValue
+
+initialTP = close + math.ceil(initialTP_ticks / syminfo.mintick) * syminfo.mintick
+initialSL = close - math.floor(initialSL_ticks / syminfo.mintick) * syminfo.mintick
+
+initialTP2 = close - math.ceil(initialTP_ticks / syminfo.mintick) * syminfo.mintick
+initialSL2 = close + math.floor(initialSL_ticks / syminfo.mintick) * syminfo.mintick
+
+OCOLong = '{ "alert": "OCO Market Long", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(entryQty) + '", "take_profit_price": "' + str.tostring(initialTP) + '", "stop_loss_price": "' + str.tostring(initialSL) + '", "oco_id": "' + str.tostring(orderID) + '", "tif": "DAY" }'
+OCOShort = '{ "alert": "OCO Market Short", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '", "qty": "' + str.tostring(entryQty) + '", "take_profit_price": "' + str.tostring(initialTP2) + '", "stop_loss_price": "' + str.tostring(initialSL2) + '", "oco_id": "' + str.tostring(orderID) + '", "tif": "DAY" }'
+CloseAll = '{ "alert": "Market Close", "account": "' + str.tostring(acct) + '", "ticker": "' + str.tostring(ticker) + '" }'
+// Execute trades
+if (strategy.position_size == 0 and longCondition)
+    orderCounter := orderCounter + 1
+    orderID := str.tostring(year) + str.tostring(month) + str.tostring(dayofmonth) + str.tostring(hour) + str.tostring(minute) + "_" + str.tostring(orderCounter)
+    strategy.entry("Long", strategy.long, alert_message=OCOLong)
+    strategy.exit("Long",profit=4, alert_message=CloseAll)
+
+if (strategy.position_size == 0 and shortCondition)
+    orderCounter := orderCounter + 1
+    orderID := str.tostring(year) + str.tostring(month) + str.tostring(dayofmonth) + str.tostring(hour) + str.tostring(minute) + "_" + str.tostring(orderCounter)
+    strategy.entry("Short", strategy.short, alert_message=OCOShort)
+    strategy.exit("Short",profit=4, alert_message=CloseAll)
+
+
+// Plotting signals
+plotshape(longCondition, title="Long", text="Buy", style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small)
+plotshape(shortCondition, title="Short", text="Sell", style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small)
